@@ -87,15 +87,14 @@ export const TaskList = ({ onEdit, onAdd }: TaskListProps) => {
 
   // ── Task grid / list ───────────────────────────────────────────────────────
   return (
-    <motion.div
-      layout
+    <div
       className={
         viewMode === 'grid'
           ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
           : 'flex flex-col gap-3'
       }
     >
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="popLayout" initial={false}>
         {filteredTasks.map((task, i) => (
           <TaskCard
             key={task.id}
@@ -106,6 +105,6 @@ export const TaskList = ({ onEdit, onAdd }: TaskListProps) => {
           />
         ))}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
