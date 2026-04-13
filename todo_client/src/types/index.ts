@@ -2,15 +2,14 @@ export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface Task {
-  id: string;
+  id: number;              // backend returns int
   title: string;
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  dueDate: string | null; // ISO datetime string
-  createdAt: string;
-  updatedAt: string;
-  tags: string[];
+  dueDate: string | null;  // ISO datetime string (normalised from due_date)
+  createdAt: string;       // ISO datetime string (normalised from created_at)
+  updatedAt: string;       // ISO datetime string (normalised from updated_at)
   aiGenerated?: boolean;
 }
 
@@ -20,7 +19,6 @@ export interface TaskFormData {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: string;
-  tags: string[];
 }
 
 export type FilterType = 'all' | TaskStatus;

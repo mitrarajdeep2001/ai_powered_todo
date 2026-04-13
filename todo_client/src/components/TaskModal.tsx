@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Tag, Calendar, AlignLeft, Type, ChevronDown, Trash2 } from 'lucide-react';
+import { X, Plus, Calendar, AlignLeft, Type, ChevronDown, Loader2 } from 'lucide-react';
 import type { Task, TaskFormData, TaskPriority, TaskStatus } from '../types';
 import { useTaskContext } from '../context/TaskContext';
 
@@ -16,14 +16,13 @@ const defaultForm: TaskFormData = {
   status: 'todo',
   priority: 'medium',
   dueDate: '',
-  tags: [],
 };
 
 export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
   const { addTask, updateTask } = useTaskContext();
   const [form, setForm] = useState<TaskFormData>(defaultForm);
-  const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const isEditing = !!task;
 
@@ -35,7 +34,6 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
         status: task.status,
         priority: task.priority,
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
-        tags: [...task.tags],
       });
     } else if (prefill) {
       setForm({ ...defaultForm, ...prefill });
@@ -53,30 +51,22 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    if (isEditing && task) {
-      updateTask(task.id, form);
-    } else {
-      addTask(form);
-    }
-    onClose();
-  };
-
-  const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = tagInput.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-      if (newTag && !form.tags.includes(newTag) && form.tags.length < 5) {
-        setForm(f => ({ ...f, tags: [...f.tags, newTag] }));
+    setIsSubmitting(true);
+    try {
+      if (isEditing && task) {
+        await updateTask(task.id, form);
+      } else {
+        await addTask(form);
       }
-      setTagInput('');
+      onClose();
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : 'Something went wrong' });
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const removeTag = (tag: string) => {
-    setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }));
   };
 
   const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
@@ -133,6 +123,13 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-y-auto">
             <div className="px-6 py-5 space-y-5">
+              {/* Global submit error */}
+              {errors.submit && (
+                <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
+                  {errors.submit}
+                </div>
+              )}
+
               {/* Title */}
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
@@ -228,41 +225,6 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400 transition-all"
                 />
               </div>
-
-              {/* Tags */}
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                  <Tag className="w-3.5 h-3.5" /> Tags
-                </label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {form.tags.map(tag => (
-                    <motion.span
-                      key={tag}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 font-medium"
-                    >
-                      #{tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
-                    </motion.span>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={addTag}
-                  placeholder="Type and press Enter to add tags..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400 transition-all"
-                />
-              </div>
             </div>
 
             {/* Footer */}
@@ -271,18 +233,24 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
                 type="button"
                 whileTap={{ scale: 0.96 }}
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
               >
                 Cancel
               </motion.button>
               <motion.button
                 type="submit"
                 whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: 1.02 }}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-violet-600 text-white text-sm font-semibold shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 transition-all"
+                whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                disabled={isSubmitting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-violet-600 text-white text-sm font-semibold shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 transition-all disabled:opacity-70"
               >
-                <Plus className="w-4 h-4" />
-                {isEditing ? 'Save Changes' : 'Add Task'}
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Task'}
               </motion.button>
             </div>
           </form>

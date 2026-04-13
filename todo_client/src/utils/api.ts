@@ -1,18 +1,36 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+const defaultHeaders = { 'Content-Type': 'application/json' };
+const defaultOpts = { credentials: 'include' as RequestCredentials };
+
 export const api = {
-  get: (endpoint: string) => 
+  get: (endpoint: string) =>
     fetch(`${API_URL}${endpoint}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: defaultHeaders,
+      ...defaultOpts,
     }),
-  
-  post: (endpoint: string, data: any) => 
+
+  post: (endpoint: string, data: unknown) =>
     fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: defaultHeaders,
       body: JSON.stringify(data),
-      credentials: 'include',
+      ...defaultOpts,
+    }),
+
+  put: (endpoint: string, data: unknown) =>
+    fetch(`${API_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: defaultHeaders,
+      body: JSON.stringify(data),
+      ...defaultOpts,
+    }),
+
+  delete: (endpoint: string) =>
+    fetch(`${API_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: defaultHeaders,
+      ...defaultOpts,
     }),
 };

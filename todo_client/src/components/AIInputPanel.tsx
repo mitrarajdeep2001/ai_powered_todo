@@ -72,16 +72,21 @@ export const AIInputPanel = ({ onOpenModal }: AIInputPanelProps) => {
         status: parsed.status || 'todo',
         priority: parsed.priority || 'medium',
         dueDate: parsed.dueDate || '',
-        tags: parsed.tags || [],
       };
-      addTask({ ...formData }, true);
-      setProcessState('success');
-      setStatusMessage(`Task "${parsed.title}" created!`);
-      setInputText('');
-      setTimeout(() => {
-        setProcessState('idle');
-        setStatusMessage('');
-      }, 2500);
+      try {
+        await addTask({ ...formData });
+        setProcessState('success');
+        setStatusMessage(`Task "${parsed.title}" created!`);
+        setInputText('');
+        setTimeout(() => {
+          setProcessState('idle');
+          setStatusMessage('');
+        }, 2500);
+      } catch (err) {
+        setProcessState('error');
+        setStatusMessage(err instanceof Error ? err.message : 'Failed to create task');
+        setTimeout(() => setProcessState('idle'), 3000);
+      }
     } else {
       // Open modal with prefilled data
       onOpenModal(parsed);

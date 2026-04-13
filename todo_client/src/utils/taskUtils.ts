@@ -25,7 +25,7 @@ const getDefaultTasks = (): Task[] => {
 
   return [
     {
-      id: '1',
+      id: 1,
       title: 'Design new landing page',
       description: 'Create wireframes and mockups for the updated product landing page with improved conversion flow.',
       status: 'in-progress',
@@ -33,11 +33,10 @@ const getDefaultTasks = (): Task[] => {
       dueDate: tomorrow.toISOString(),
       createdAt: new Date(now.getTime() - 86400000 * 2).toISOString(),
       updatedAt: now.toISOString(),
-      tags: ['design', 'ui'],
       aiGenerated: false,
     },
     {
-      id: '2',
+      id: 2,
       title: 'Write unit tests for auth module',
       description: 'Cover all edge cases in the authentication module including OAuth flows.',
       status: 'todo',
@@ -45,11 +44,10 @@ const getDefaultTasks = (): Task[] => {
       dueDate: nextWeek.toISOString(),
       createdAt: new Date(now.getTime() - 86400000).toISOString(),
       updatedAt: now.toISOString(),
-      tags: ['testing', 'backend'],
       aiGenerated: false,
     },
     {
-      id: '3',
+      id: 3,
       title: 'Update project documentation',
       description: 'Refresh the API docs and README with the latest changes from v2.0 release.',
       status: 'done',
@@ -57,7 +55,6 @@ const getDefaultTasks = (): Task[] => {
       dueDate: null,
       createdAt: new Date(now.getTime() - 86400000 * 5).toISOString(),
       updatedAt: now.toISOString(),
-      tags: ['docs'],
       aiGenerated: false,
     },
   ];
@@ -70,7 +67,6 @@ export const parseAITaskInput = (input: string): Partial<TaskFormData> => {
     status: 'todo',
     priority: 'medium',
     dueDate: '',
-    tags: [],
   };
 
   // Detect priority
@@ -135,23 +131,6 @@ export const parseAITaskInput = (input: string): Partial<TaskFormData> => {
     }
   }
 
-  // Detect tags from common keywords
-  const tagMap: Record<string, string[]> = {
-    design: ['design', 'ui', 'ux', 'figma', 'mockup', 'wireframe'],
-    dev: ['code', 'develop', 'programming', 'implement', 'build', 'create', 'fix', 'bug'],
-    testing: ['test', 'qa', 'quality', 'check'],
-    docs: ['document', 'docs', 'readme', 'write', 'documentation'],
-    meeting: ['meeting', 'call', 'standup', 'sync', 'discuss'],
-    research: ['research', 'explore', 'investigate', 'study', 'learn'],
-  };
-  const tags: string[] = [];
-  for (const [tag, keywords] of Object.entries(tagMap)) {
-    if (keywords.some(k => new RegExp(`\\b${k}`, 'i').test(input))) {
-      tags.push(tag);
-    }
-  }
-  result.tags = tags.slice(0, 3);
-
   // Clean the text to extract title and description
   let cleanText = input
     .replace(/urgent|critical|asap|high priority|important|low priority|not urgent|whenever|someday/gi, '')
@@ -198,17 +177,17 @@ export const getPriorityColor = (priority: TaskPriority): string => {
 
 export const getPriorityBg = (priority: TaskPriority): string => {
   switch (priority) {
-    case 'high': return 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400';
-    case 'medium': return 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
-    case 'low': return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
+    case 'high': return 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:border dark:border-red-500/30';
+    case 'medium': return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 dark:border dark:border-amber-500/30';
+    case 'low': return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border dark:border-emerald-500/30';
   }
 };
 
 export const getStatusBg = (status: TaskStatus): string => {
   switch (status) {
-    case 'todo': return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
-    case 'in-progress': return 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
-    case 'done': return 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400';
+    case 'todo': return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 dark:border dark:border-slate-600';
+    case 'in-progress': return 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:border dark:border-blue-500/30';
+    case 'done': return 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 dark:border dark:border-green-500/30';
   }
 };
 
