@@ -14,3 +14,9 @@ class ExtractedFilters(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     date_filter: Optional[str] = None  # today, tomorrow, week
+
+class ExtractedAction(BaseModel):
+    title: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    reference: Optional[str] = None  # last, first, specific

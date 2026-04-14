@@ -1,9 +1,12 @@
 from app.services.todo_service import TodoService
 from app.services.ai.mapper import normalize_status, normalize_priority
+from app.services.ai.resolver import resolve_task
+from app.services.ai.response import success_response, error_response, format_todo
 
 from sqlalchemy import select
 from datetime import datetime, timedelta, timezone
 from app.models.todo import Todo
+from app.schemas.todo import UpdateTodo
 
 
 async def execute_action(state, db, user_id):
@@ -16,7 +19,10 @@ async def execute_action(state, db, user_id):
     # ---------------------------
     if intent == "CREATE":
         todo = await TodoService.create(db, user_id, data)
-        return {**state, "output": f"Created todo {todo.id}"}
+        return {
+            **state,
+            "output": success_response("CREATE", format_todo(todo))
+        }
 
     # ---------------------------
     # GET (INTELLIGENT FILTERING)
@@ -74,31 +80,82 @@ async def execute_action(state, db, user_id):
         # ✅ Structured response (important)
         return {
             **state,
-            "output": {
-                "count": len(todos),
-                "todos": [
-                    {
-                        "id": t.id,
-                        "title": t.title,
-                        "status": t.status,
-                        "priority": t.priority,
-                        "due_date": t.due_date
-                    }
-                    for t in todos
-                ]
-            }
+            "output": success_response(
+                "GET",
+                [format_todo(t) for t in todos]
+            )
         }
 
     # ---------------------------
-    # DELETE (placeholder)
+    # DELETE
     # ---------------------------
     if intent == "DELETE":
-        return {**state, "output": "Delete not fully implemented"}
+
+        # 🔥 BULK DELETE (filter-based)
+        if getattr(data, "status", None) or getattr(data, "priority", None):
+
+            query = select(Todo).where(Todo.user_id == user_id)
+
+            if data.status:
+                status = normalize_status(data.status)
+                query = query.where(Todo.status == status)
+
+            if data.priority:
+                priority = normalize_priority(data.priority)
+                query = query.where(Todo.priority == priority)
+
+            result = await db.execute(query)
+            tasks = result.scalars().all()
+
+            if not tasks:
+                return {**state, "output": "No matching tasks found"}
+
+            for task in tasks:
+                await TodoService.delete(db, user_id, task.id)
+
+            return {
+                **state,
+                "output": success_response(
+                    "DELETE",
+                    [format_todo(t) for t in tasks]
+                )
+            }
+
+        # 🔴 SINGLE DELETE (existing logic)
+        task = await resolve_task(db, user_id, data)
+
+        if not task:
+            return {**state, "output": "Task not found"}
+
+        await TodoService.delete(db, user_id, task.id)
+
+        return {
+            **state,
+            "output": success_response("DELETE", format_todo(task))
+        }
 
     # ---------------------------
-    # UPDATE (placeholder)
+    # UPDATE
     # ---------------------------
     if intent == "UPDATE":
-        return {**state, "output": "Update not fully implemented"}
+        task = await resolve_task(db, user_id, data)
+        if not task:
+            return {**state, "output": "Task not found"}
+        update_data = {}
+        if data.status:
+            update_data["status"] = normalize_status(data.status)
+        if data.priority:
+            update_data["priority"] = normalize_priority(data.priority)
+        # ✅ Convert dict → Pydantic
+        update_schema = UpdateTodo(**update_data)
+        updated = await TodoService.update(
+            db,
+            user_id,
+            task.id,
+            update_schema
+        )
 
-    return {**state, "output": "Unknown action"}
+        return {
+            **state,
+            "output": success_response("UPDATE", format_todo(updated))
+        }

@@ -1,6 +1,6 @@
 from langchain_groq import ChatGroq
 from app.services.ai.state import AIState
-from app.schemas.ai import ExtractedTodo, ExtractedFilters
+from app.schemas.ai import ExtractedTodo, ExtractedFilters, ExtractedAction
 from app.services.ai.mapper import normalize_status, normalize_priority
 
 import json
@@ -48,14 +48,16 @@ def extract_json(content: str):
 
 
 # -------------------------------
-# Data Extraction (CREATE + GET)
+# Data Extraction (ALL INTENTS)
 # -------------------------------
 async def extract_data(state: AIState):
 
+    intent = state["intent"]
+
     # ---------------------------
-    # GET → Extract Filters
+    # GET → Filters
     # ---------------------------
-    if state["intent"] == "GET":
+    if intent == "GET":
 
         prompt = f"""
         Extract filters from the user query:
@@ -73,11 +75,37 @@ async def extract_data(state: AIState):
         - "pending" → TODO
         - "ongoing" → IN_PROGRESS
         - "completed" → DONE
-        - "urgent" → HIGH priority
+        - "urgent" → HIGH
         """
 
     # ---------------------------
-    # CREATE → Extract Todo
+    # UPDATE / DELETE → Action
+    # ---------------------------
+    elif intent in ["UPDATE", "DELETE"]:
+
+        prompt = f"""
+        Extract action details from the user query:
+
+        {state['input']}
+
+        Return ONLY valid JSON:
+        {{
+            "title": "...",
+            "status": "...",
+            "priority": "...",
+            "reference": "last | first | specific"
+        }}
+
+        Rules:
+        - "last task" → reference = "last"
+        - "first task" → reference = "first"
+        - If task name mentioned → put in title
+        - "completed/done" → DONE
+        - "urgent" → HIGH
+        """
+
+    # ---------------------------
+    # CREATE → Todo
     # ---------------------------
     else:
 
@@ -113,11 +141,23 @@ async def extract_data(state: AIState):
         # -----------------------
         # GET FLOW
         # -----------------------
-        if state["intent"] == "GET":
+        if intent == "GET":
 
             validated = ExtractedFilters(**parsed)
 
-            # Normalize
+            if validated.status:
+                validated.status = normalize_status(parsed.get("status"))
+
+            if validated.priority:
+                validated.priority = normalize_priority(parsed.get("priority"))
+
+        # -----------------------
+        # UPDATE / DELETE FLOW
+        # -----------------------
+        elif intent in ["UPDATE", "DELETE"]:
+
+            validated = ExtractedAction(**parsed)
+
             if validated.status:
                 validated.status = normalize_status(parsed.get("status"))
 
@@ -129,14 +169,12 @@ async def extract_data(state: AIState):
         # -----------------------
         else:
 
-            # fallback if due_date breaks
             try:
                 validated = ExtractedTodo(**parsed)
             except:
                 parsed["due_date"] = None
                 validated = ExtractedTodo(**parsed)
 
-            # Normalize safely
             validated.status = normalize_status(parsed.get("status") or "TODO")
             validated.priority = normalize_priority(parsed.get("priority") or "MEDIUM")
 
