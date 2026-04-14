@@ -28,7 +28,7 @@ app.add_middleware(
 # -------------------------------
 app.include_router(auth_router, prefix="/api")
 app.include_router(todo_router, prefix="/api")
-app.include_router(ai_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api")
 
 
 # -------------------------------

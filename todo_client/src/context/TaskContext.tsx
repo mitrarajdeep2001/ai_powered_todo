@@ -60,6 +60,13 @@ function mapApiTask(raw: any): Task {
 
 // ─── Context types ──────────────────────────────────────────────────────────
 
+export interface AIResponse {
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'GET';
+  success: boolean;
+  data: any;
+  error?: string;
+}
+
 interface TaskContextType {
   tasks: Task[];
   filteredTasks: Task[];
@@ -79,6 +86,7 @@ interface TaskContextType {
   updateTask: (id: number, data: Partial<TaskFormData>) => Promise<void>;
   deleteTask: (id: number) => Promise<void>;
   toggleTaskStatus: (id: number) => Promise<void>;
+  executeAICommand: (prompt: string) => Promise<AIResponse>;
   stats: { total: number; todo: number; inProgress: number; done: number };
 }
 
@@ -199,6 +207,31 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     await updateTask(id, { status: cycle[task.status] });
   }, [tasks, updateTask]);
 
+  const executeAICommand = useCallback(async (prompt: string): Promise<AIResponse> => {
+    const res = await api.post(`/ai/chat?prompt=${encodeURIComponent(prompt)}`, {});
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.detail || 'AI processing failed');
+    }
+    const raw = await res.json();
+    
+    // The backend executes immediately, so our local tasks might be stale.
+    // If it's a modifying action, re-fetch.
+    if (raw && raw.action !== 'GET') {
+      await fetchTasks();
+    } else if (raw && raw.action === 'GET') {
+      // For get actions, we could theoretically update local tasks but our system
+      // uses filters instead. For now, since GET is fully resolved on backend,
+      // you could optionally set local tasks if you want exactly that filter view.
+      // Easiest is just replacing filteredTasks list, but we'll stick to a full sync.
+      if (raw.data && Array.isArray(raw.data)) {
+         setTasks(raw.data.map(mapApiTask));
+      }
+    }
+    
+    return raw as AIResponse;
+  }, [fetchTasks]);
+
   // ── Derived state (filtering / sorting) ──────────────────────────────────
 
   const priorityOrder: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
@@ -251,7 +284,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
         tasks, filteredTasks, isLoading, error,
         filter, sort, viewMode, theme, searchQuery,
         setFilter, setSort, setViewMode, toggleTheme, setSearchQuery,
-        addTask, updateTask, deleteTask, toggleTaskStatus, stats,
+        addTask, updateTask, deleteTask, toggleTaskStatus, executeAICommand, stats,
       }}
     >
       {children}

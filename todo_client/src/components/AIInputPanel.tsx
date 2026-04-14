@@ -6,11 +6,11 @@ import {
 } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
 import { useVoiceInput } from '../hooks/useVoiceInput';
-import { parseAITaskInput } from '../utils/taskUtils';
 import type { TaskFormData } from '../types';
 
 interface AIInputPanelProps {
-  onOpenModal: (prefill?: Partial<TaskFormData>) => void;
+  // onOpenModal is currently kept in type signature to not break parent, but unused here
+  onOpenModal?: (prefill?: Partial<TaskFormData>) => void;
 }
 
 type ProcessState = 'idle' | 'processing' | 'success' | 'error';
@@ -24,7 +24,7 @@ const suggestions = [
 ];
 
 export const AIInputPanel = ({ onOpenModal }: AIInputPanelProps) => {
-  const { addTask } = useTaskContext();
+  const { executeAICommand } = useTaskContext();
   const [inputText, setInputText] = useState('');
   const [processState, setProcessState] = useState<ProcessState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
@@ -47,58 +47,51 @@ export const AIInputPanel = ({ onOpenModal }: AIInputPanelProps) => {
 
   const displayText = inputText + (interimTranscript ? (inputText ? ' ' : '') + interimTranscript : '');
 
-  const processInput = async (text: string, directAdd = false) => {
+  const processInput = async (text: string) => {
     if (!text.trim()) return;
 
     setProcessState('processing');
     setStatusMessage('Analyzing your input...');
 
-    // Simulate AI processing delay for UX
-    await new Promise(r => setTimeout(r, 600));
-
-    const parsed = parseAITaskInput(text);
-
-    if (!parsed.title) {
-      setProcessState('error');
-      setStatusMessage('Could not extract task title. Try being more specific.');
-      setTimeout(() => setProcessState('idle'), 3000);
-      return;
-    }
-
-    if (directAdd) {
-      const formData: TaskFormData = {
-        title: parsed.title || text.trim(),
-        description: parsed.description || '',
-        status: parsed.status || 'todo',
-        priority: parsed.priority || 'medium',
-        dueDate: parsed.dueDate || '',
-      };
-      try {
-        await addTask({ ...formData });
+    try {
+      const response = await executeAICommand(text);
+      if (response && response.success) {
         setProcessState('success');
-        setStatusMessage(`Task "${parsed.title}" created!`);
+        
+        // Provide contextual message based on backend action
+        let actionMsg = "Action executed!";
+        if (response.action === 'CREATE') {
+          actionMsg = `Task created!`;
+        } else if (response.action === 'UPDATE') {
+          actionMsg = `Task updated successfully!`;
+        } else if (response.action === 'DELETE') {
+          actionMsg = `Task(s) deleted!`;
+        } else if (response.action === 'GET') {
+          actionMsg = `Filtered tasks shown.`;
+        }
+        
+        setStatusMessage(actionMsg);
         setInputText('');
         setTimeout(() => {
           setProcessState('idle');
           setStatusMessage('');
         }, 2500);
-      } catch (err) {
+      } else {
         setProcessState('error');
-        setStatusMessage(err instanceof Error ? err.message : 'Failed to create task');
+        setStatusMessage(response?.error || 'Failed to process AI command');
         setTimeout(() => setProcessState('idle'), 3000);
       }
-    } else {
-      // Open modal with prefilled data
-      onOpenModal(parsed);
-      setInputText('');
-      setProcessState('idle');
+    } catch (err) {
+      setProcessState('error');
+      setStatusMessage(err instanceof Error ? err.message : 'Failed to communicate with AI');
+      setTimeout(() => setProcessState('idle'), 3000);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      processInput(inputText, true);
+      processInput(inputText);
     }
     if (e.key === 'Escape') {
       setInputText('');
@@ -233,25 +226,10 @@ export const AIInputPanel = ({ onOpenModal }: AIInputPanelProps) => {
 
             {/* Submit buttons */}
             <div className="flex items-center gap-2">
-              <AnimatePresence>
-                {inputText.trim() && processState === 'idle' && (
-                  <motion.button
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => processInput(inputText, false)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                  >
-                    Preview & Edit
-                  </motion.button>
-                )}
-              </AnimatePresence>
-
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ scale: 1.02 }}
-                onClick={() => processInput(inputText, true)}
+                onClick={() => processInput(inputText)}
                 disabled={!inputText.trim() || processState === 'processing'}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   inputText.trim() && processState === 'idle'
@@ -264,7 +242,7 @@ export const AIInputPanel = ({ onOpenModal }: AIInputPanelProps) => {
                 {processState === 'processing' ? (
                   <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...</>
                 ) : (
-                  <><Send className="w-3.5 h-3.5" /> Create Task</>
+                  <><Send className="w-3.5 h-3.5" /> Submit</>
                 )}
               </motion.button>
             </div>
