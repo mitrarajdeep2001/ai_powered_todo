@@ -36,6 +36,7 @@ export const useVoiceInput = ({ onTranscript, onError }: UseVoiceInputOptions) =
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef('');
 
   const isSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
@@ -58,6 +59,7 @@ export const useVoiceInput = ({ onTranscript, onError }: UseVoiceInputOptions) =
       setIsListening(true);
       setTranscript('');
       setInterimTranscript('');
+      finalTranscriptRef.current = '';
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -74,7 +76,8 @@ export const useVoiceInput = ({ onTranscript, onError }: UseVoiceInputOptions) =
       }
 
       if (final) {
-        setTranscript(prev => prev + final);
+        finalTranscriptRef.current += final;
+        setTranscript(finalTranscriptRef.current);
         setInterimTranscript('');
       } else {
         setInterimTranscript(interim);
@@ -90,12 +93,13 @@ export const useVoiceInput = ({ onTranscript, onError }: UseVoiceInputOptions) =
     recognition.onend = () => {
       setIsListening(false);
       setInterimTranscript('');
-      setTranscript(prev => {
-        if (prev.trim()) {
-          onTranscript(prev.trim());
-        }
-        return '';
-      });
+      
+      const current = finalTranscriptRef.current.trim();
+      if (current) {
+        onTranscript(current);
+      }
+      finalTranscriptRef.current = '';
+      setTranscript('');
     };
 
     recognitionRef.current = recognition;
