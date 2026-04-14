@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sun, Moon, Grid3X3, List, Search, X, LogOut } from 'lucide-react';
+import { Sun, Moon, Grid3X3, List, Search, X, LogOut, Loader2 } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,11 +8,18 @@ import { useNavigate } from 'react-router-dom';
 export const Header = () => {
   const { theme, toggleTheme, viewMode, setViewMode, searchQuery, setSearchQuery } = useTaskContext();
   const { user, logout } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -119,11 +127,18 @@ export const Header = () => {
                     whileTap={{ scale: 0.9 }}
                     whileHover={{ scale: 1.05 }}
                     onClick={handleLogout}
-                    className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center gap-2"
+                    disabled={isLoggingOut}
+                    className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center gap-2 disabled:opacity-50"
                     title="Log out"
                   >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline text-sm font-medium">Logout</span>
+                    {isLoggingOut ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <LogOut className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline text-sm font-medium">
+                      {isLoggingOut ? 'Logging out…' : 'Logout'}
+                    </span>
                   </motion.button>
                 </div>
               )}

@@ -25,6 +25,10 @@ body {
   font-family: var(--font-sans);
 }
 
+button {
+  cursor: pointer;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, Calendar, Clock, CaseLower, Type } from 'lucide-react';
 import { useTaskContext } from '../context/TaskContext';
+import { CustomSelect, type SelectOption } from './CustomSelect';
 import type { SortType } from '../types';
 
-const sortOptions: { value: SortType; label: string }[] = [
-  { value: 'createdAt', label: 'Newest first' },
-  { value: 'dueDate', label: 'Due date' },
-  { value: 'priority', label: 'Priority' },
-  { value: 'title', label: 'Title A–Z' },
+const sortOptions: SelectOption<SortType>[] = [
+  { value: 'createdAt', label: 'Newest first', icon: <Clock className="w-3.5 h-3.5" /> },
+  { value: 'dueDate', label: 'Due date', icon: <Calendar className="w-3.5 h-3.5" /> },
+  { value: 'priority', label: 'Priority', icon: <ArrowUpDown className="w-3.5 h-3.5" /> },
+  { value: 'title', label: 'Title A–Z', icon: <CaseLower className="w-3.5 h-3.5" /> },
 ];
 
 export const SortBar = () => {
@@ -29,16 +30,12 @@ export const SortBar = () => {
       </motion.p>
 
       <div className="flex items-center gap-2">
-        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-        <select
+        <CustomSelect
+          options={sortOptions}
           value={sort}
-          onChange={e => setSort(e.target.value as SortType)}
-          className="text-xs text-slate-600 dark:text-slate-300 bg-transparent border-none focus:outline-none cursor-pointer font-medium"
-        >
-          {sortOptions.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onChange={val => setSort(val as SortType)}
+          className="min-w-[140px]"
+        />
       </div>
     </div>
   );

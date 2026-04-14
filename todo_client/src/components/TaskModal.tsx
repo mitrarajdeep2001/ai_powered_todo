@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Calendar, AlignLeft, Type, ChevronDown, Loader2 } from 'lucide-react';
+import { X, Plus, Calendar, AlignLeft, Type, ChevronDown, Loader2, ListTodo, Clock, CheckCircle2 } from 'lucide-react';
 import type { Task, TaskFormData, TaskPriority, TaskStatus } from '../types';
 import { useTaskContext } from '../context/TaskContext';
+import { CustomSelect, type SelectOption } from './CustomSelect';
 
 interface TaskModalProps {
   task: Task | null;
@@ -75,10 +76,10 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
     { value: 'high', label: 'High', color: 'text-red-500' },
   ];
 
-  const statusOptions: { value: TaskStatus; label: string }[] = [
-    { value: 'todo', label: 'To Do' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' },
+  const statusOptions: SelectOption<TaskStatus>[] = [
+    { value: 'todo', label: 'To Do', icon: <ListTodo className="w-4 h-4 text-slate-400" /> },
+    { value: 'in-progress', label: 'In Progress', icon: <Clock className="w-4 h-4 text-blue-500" /> },
+    { value: 'done', label: 'Done', icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" /> },
   ];
 
   return (
@@ -172,18 +173,13 @@ export const TaskModal = ({ task, prefill, onClose }: TaskModalProps) => {
                   <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
                     Status
                   </label>
-                  <div className="relative">
-                    <select
-                      value={form.status}
-                      onChange={e => setForm(f => ({ ...f, status: e.target.value as TaskStatus }))}
-                      className="w-full appearance-none px-3 py-2.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400 transition-all cursor-pointer"
-                    >
-                      {statusOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
+                  <CustomSelect
+                    options={statusOptions}
+                    value={form.status}
+                    onChange={val => setForm(f => ({ ...f, status: val as TaskStatus }))}
+                    className="w-full"
+                    dropdownClassName="w-full"
+                  />
                 </div>
 
                 <div>
