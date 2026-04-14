@@ -111,16 +111,21 @@ export const Header = () => {
               
               {/* Logout Button */}
               {user && (
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  whileHover={{ scale: 1.05 }}
-                  onClick={handleLogout}
-                  className="p-2 ml-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center gap-2"
-                  title="Log out"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm font-medium">Logout</span>
-                </motion.button>
+                <div className="flex items-center ml-2 border-l border-slate-200 dark:border-slate-700 pl-4 gap-3">
+                  <span className="hidden sm:inline text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {user.name}
+                  </span>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.05 }}
+                    onClick={handleLogout}
+                    className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center gap-2"
+                    title="Log out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm font-medium">Logout</span>
+                  </motion.button>
+                </div>
               )}
             </motion.div>
           </div>
