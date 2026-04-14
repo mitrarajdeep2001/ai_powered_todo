@@ -20,7 +20,7 @@ class TodoService:
     @staticmethod
     async def get_all(db: AsyncSession, user_id: int):
         result = await db.execute(
-            select(Todo).where(Todo.user_id == user_id)
+            select(Todo).where(Todo.user_id == user_id).order_by(Todo.created_at.desc())
         )
         return result.scalars().all()
 

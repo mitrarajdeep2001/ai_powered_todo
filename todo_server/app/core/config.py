@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
+    GROQ_API_KEY: str
+    OPENAI_API_KEY: str
+    GOOGLE_API_KEY: str
+
     class Config:
         env_file = ".env"
 

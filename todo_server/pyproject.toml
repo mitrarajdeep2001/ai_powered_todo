@@ -16,4 +16,7 @@ dependencies = [
     "python-jose>=3.5.0",
     "sqlalchemy>=2.0.49",
     "uvicorn>=0.44.0",
+    "langgraph>=1.1.6",
+    "langchain>=1.2.15",
+    "langchain-groq>=1.1.2",
 ]

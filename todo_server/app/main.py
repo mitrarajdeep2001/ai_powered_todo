@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.todo import router as todo_router
+from app.api.ai import router as ai_router
 
 app = FastAPI(
     title="AI Powered Todo API",
@@ -27,6 +28,7 @@ app.add_middleware(
 # -------------------------------
 app.include_router(auth_router, prefix="/api")
 app.include_router(todo_router, prefix="/api")
+app.include_router(ai_router, prefix="/api/v1")
 
 
 # -------------------------------
